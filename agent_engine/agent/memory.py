@@ -25,6 +25,8 @@ class Memory:
     tool_outputs: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     scratchpad: List[str] = field(default_factory=list)
     history: List[Dict[str, Any]] = field(default_factory=list)
+    # ReAct-style traces: per-subtask list of thought/action/observation events.
+    traces: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
 
     def add_note(self, text: str) -> None:
         """Append a free‑form reflection to the scratchpad."""
@@ -43,6 +45,17 @@ class Memory:
             }
         )
 
+    def record_trace(self, subtask_id: str, event: Dict[str, Any]) -> None:
+        """
+        Append a ReAct-style trace event for the given subtask.
+
+        Each event is expected to contain at least:
+            - type: "thought" | "action" | "observation" | "critique"
+            - content: free-form string
+        Additional fields (e.g. timestamps, tool names) are allowed.
+        """
+        self.traces.setdefault(subtask_id, []).append(event)
+
     def to_dict(self) -> Dict[str, Any]:
         """Return a serialisable view of the memory."""
         return {
@@ -50,6 +63,7 @@ class Memory:
             "tool_outputs": self.tool_outputs,
             "scratchpad": list(self.scratchpad),
             "history": list(self.history),
+            "traces": {k: list(v) for k, v in self.traces.items()},
         }
 
 

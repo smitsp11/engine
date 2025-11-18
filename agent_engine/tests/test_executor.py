@@ -1,7 +1,7 @@
-from agent.executor import Executor
-from agent.memory import Memory
-from agent.state import TaskState
-from agent.schemas import Subtask, ToolName, SubtaskStatus
+from agent_engine.agent.executor import Executor
+from agent_engine.agent.memory import Memory
+from agent_engine.agent.state import TaskState
+from agent_engine.agent.schemas import Subtask, ToolName, SubtaskStatus
 
 
 def make_simple_context():
@@ -24,8 +24,7 @@ def test_executor_runs_generate_text_and_updates_state():
         deliverable="Greeting text.",
     )
 
-    # Minimal fake plan with .subtasks so SAVE_OUTPUT payload can reference it if needed.
-    state.set_plan(type("P", (), {"subtasks": [subtask]})())
+    state.set_plan(type("P", (), {"subtasks": [subtask]})())  # minimal fake plan with .subtasks
 
     result = executor.execute_subtask(subtask)
 
@@ -37,6 +36,5 @@ def test_executor_runs_generate_text_and_updates_state():
 
     # State should have at least one subtask result recorded.
     assert len(state.subtask_results) == 1
-
 
 

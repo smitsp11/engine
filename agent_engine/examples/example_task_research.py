@@ -1,11 +1,11 @@
 """
-Example: research a topic using the agent.
+Example: research a topic using the agent engine.
 """
 
 from __future__ import annotations
 
-from agent.core import run_agent
-from agent import utils
+from agent_engine import run_agent
+from agent_engine.agent import utils
 
 
 def main() -> None:
@@ -17,6 +17,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
 
 

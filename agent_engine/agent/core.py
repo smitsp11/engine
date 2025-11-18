@@ -22,8 +22,9 @@ from typing import Any, Dict, List, Optional
 from .memory import Memory
 from .planner import Planner
 from .executor import Executor
-from .schemas import TaskPlan, SubtaskResult
+from .schemas import TaskPlan, SubtaskResult, SubtaskStatus
 from .state import TaskState, TaskStatus
+from .task_simplifier import TaskSimplifier
 from . import utils
 
 
@@ -47,6 +48,7 @@ class AgentCore:
         self.state = TaskState()
         # Executor depends on memory/state so we construct it after them.
         self.executor = executor or Executor(memory=self.memory, state=self.state)
+        self.simplifier = TaskSimplifier()
 
     # ------------------------------------------------------------------
     # Public API
@@ -73,14 +75,23 @@ class AgentCore:
         """
         utils.logger().info("Starting agent task", extra={"task": task_description})
 
-        # 1) PLAN
+        # 1) TASK SIMPLIFICATION + PLAN
         self.state.start_task(task_description)
-        plan: TaskPlan = self.planner.plan(task_description)
+
+        simplified = self.simplifier.simplify(task_description)
+        self.state.metadata["simplified_task"] = simplified
+
+        planning_task = simplified.get("normalized_task") or task_description
+
+        plan: TaskPlan = self.planner.create_plan(planning_task, context=simplified)
         self.state.set_plan(plan)
         self.memory.add_note(f"Plan created with {len(plan.subtasks)} subtasks.")
 
-        # 2) EXECUTE SUBTASKS SEQUENTIALLY
-        for subtask in plan.subtasks:
+        # 2) EXECUTE SUBTASKS (WITH OPTIONAL DYNAMIC REPLANNING)
+        i = 0
+        replans_done = 0
+        while i < len(plan.subtasks):
+            subtask = plan.subtasks[i]
             utils.logger().info(
                 "Starting subtask",
                 extra={"subtask_id": subtask.id, "description": subtask.description},
@@ -91,16 +102,25 @@ class AgentCore:
             # a) Thought: (here it's simply "execute the next planned subtask")
             self.memory.add_note(f"Planning to execute subtask: {subtask.description}")
 
-            # b) Action + c) Observation + d) Critique are handled by Executor
-            result: SubtaskResult = self.executor.run_subtask(subtask)
+            # b) Action + c) Observation + d) Critique are handled by Executor,
+            # including basic self-check with a possible single retry.
+            result: SubtaskResult = self.executor.execute_subtask(subtask)
 
-            # Update memory and state with observation
-            self.memory.record_result(subtask.id, result)
-            self.state.finish_subtask(subtask.id, result)
+            # If a subtask fails and we have not replanned yet, trigger a simple
+            # dynamic replanning step to add recovery subtasks.
+            if result.status == SubtaskStatus.FAILED and replans_done == 0:
+                recovery_plan = self.planner.replan(self.state, self.memory)
+                if recovery_plan is not None and recovery_plan.subtasks:
+                    self.state.metadata.setdefault("replans", []).append(
+                        {
+                            "reason": result.error or "subtask_failed",
+                            "recovery_subtasks": [s.id for s in recovery_plan.subtasks],
+                        }
+                    )
+                    plan.subtasks.extend(recovery_plan.subtasks)
+                    replans_done += 1
 
-            # If the subtask failed and executor decided not to retry, we can choose
-            # to continue or abort. For this minimal skeleton, we continue but mark
-            # the overall task as "partial_success" if any subtask fails.
+            i += 1
 
         # 3) FINAL SUMMARY
         self.state.finish_task()

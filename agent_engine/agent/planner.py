@@ -9,9 +9,11 @@ designed so that you can later swap in a real LLM call with minimal changes.
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from .schemas import Subtask, TaskPlan, ToolName, validate_task_plan
+from .state import TaskState
+from .memory import Memory
 from . import utils
 
 
@@ -26,7 +28,7 @@ class Planner:
     with earlier code in this project.
     """
 
-    def create_plan(self, task: str) -> TaskPlan:
+    def create_plan(self, task: str, context: Optional[Dict[str, Any]] = None) -> TaskPlan:
         """
         Create a TaskPlan for the given high-level task description.
 
@@ -39,8 +41,8 @@ class Planner:
         """
         utils.logger().info("Planner: creating plan", extra={"task": task})
 
-        subtasks: List[Subtask] = self._fake_llm_plan(task)
-        plan = TaskPlan(task=task, subtasks=subtasks)
+        candidates = self._generate_candidate_plans(task, context=context, n=3)
+        plan = self._select_best_plan(candidates, context=context)
 
         # Validate structure and constraints (5–15 subtasks, unique IDs, etc.)
         validate_task_plan(plan)
@@ -207,6 +209,111 @@ class Planner:
             extra={"subtasks": [asdict(s) for s in subtasks]},
         )
         return subtasks
+
+    # ------------------------------------------------------------------
+    # Tree/Graph-of-Thought helpers
+    # ------------------------------------------------------------------
+
+    def _generate_candidate_plans(
+        self,
+        task: str,
+        context: Optional[Dict[str, Any]] = None,
+        n: int = 3,
+    ) -> List[TaskPlan]:
+        """
+        Generate N candidate TaskPlans for the given task.
+
+        For now, this tweaks the base fake plan slightly to simulate branching.
+        """
+        base_subtasks = self._fake_llm_plan(task)
+        candidates: List[TaskPlan] = []
+
+        for i in range(1, n + 1):
+            # Create a shallow copy of subtasks with small descriptive variations.
+            variant: List[Subtask] = []
+            for s in base_subtasks:
+                suffix = "" if i == 1 else f" (variant {i})"
+                variant.append(
+                    Subtask(
+                        id=s.id,
+                        description=s.description + suffix,
+                        tool=s.tool,
+                        dependencies=list(s.dependencies),
+                        success_criteria=s.success_criteria,
+                        deliverable=s.deliverable,
+                    )
+                )
+            candidates.append(TaskPlan(task=task, subtasks=variant))
+        return candidates
+
+    def _score_plan(
+        self,
+        plan: TaskPlan,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        """
+        Deterministic scoring function for candidate plans.
+
+        Heuristics:
+        - prefer plans that include both SEARCH_IN_FILES and SAVE_OUTPUT
+        - mildly prefer more subtasks (up to 10)
+        """
+        tools = {s.tool for s in plan.subtasks}
+        score = 0
+        if ToolName.SEARCH_IN_FILES in tools:
+            score += 2
+        if ToolName.SAVE_OUTPUT in tools:
+            score += 2
+        score += min(len(plan.subtasks), 10)
+        return score
+
+    def _select_best_plan(
+        self,
+        candidates: List[TaskPlan],
+        context: Optional[Dict[str, Any]] = None,
+    ) -> TaskPlan:
+        """Pick the highest-scoring candidate plan."""
+        if not candidates:
+            raise ValueError("No candidate plans generated.")
+        scored = [(self._score_plan(p, context=context), p) for p in candidates]
+        best_score, best_plan = max(scored, key=lambda x: x[0])
+        utils.logger().debug("Planner selected best plan", extra={"score": best_score})
+        return best_plan
+
+    # ------------------------------------------------------------------
+    # Dynamic replanning
+    # ------------------------------------------------------------------
+
+    def replan(self, state: TaskState, memory: Memory) -> Optional[TaskPlan]:
+        """
+        Produce a small recovery plan when the current trajectory is failing.
+
+        This is a deterministic "fake" replan that can later be backed by an LLM.
+        """
+        if not state.task_description:
+            return None
+
+        task = f"Recovery for: {state.task_description}"
+        subtasks: List[Subtask] = [
+            Subtask(
+                id="replan-1",
+                description="Analyse previous failures and missing information.",
+                tool=ToolName.GENERATE_TEXT,
+                dependencies=[],
+                success_criteria="Summarises what went wrong and what is missing.",
+                deliverable="Short diagnostic note.",
+            ),
+            Subtask(
+                id="replan-2",
+                description="Save updated recommendations to storage.",
+                tool=ToolName.SAVE_OUTPUT,
+                dependencies=["replan-1"],
+                success_criteria="Recommendations are stored and referenced by a key.",
+                deliverable="Storage key for updated recommendations.",
+            ),
+        ]
+        recovery_plan = TaskPlan(task=task, subtasks=subtasks)
+        return recovery_plan
 
 
 __all__ = ["Planner"]

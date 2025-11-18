@@ -1,5 +1,5 @@
-from agent.planner import Planner
-from agent.schemas import ToolName
+from agent_engine.agent.planner import Planner
+from agent_engine.agent.schemas import ToolName
 
 
 def test_planner_produces_valid_plan_for_study_task():
@@ -24,6 +24,5 @@ def test_planner_produces_valid_plan_for_study_task():
     tools = {s.tool for s in plan.subtasks}
     assert ToolName.SEARCH_IN_FILES in tools
     assert ToolName.SAVE_OUTPUT in tools
-
 
 

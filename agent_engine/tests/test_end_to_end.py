@@ -1,4 +1,4 @@
-from agent.core import run_agent
+from agent_engine import run_agent
 
 
 def test_run_agent_does_not_crash_and_returns_summary():
@@ -12,6 +12,5 @@ def test_run_agent_does_not_crash_and_returns_summary():
     assert isinstance(summary.get("plan"), list)
     assert len(summary["plan"]) >= 1
     assert isinstance(summary.get("results"), list)
-
 
 
