@@ -1,0 +1,10 @@
+{
+  "id": "modify-data-basic",
+  "category": "execution",
+  "task": "Transform this JSON into a list of names: {\"users\": [{\"name\":\"Alice\"},{\"name\":\"Bob\"}]}",
+  "expected": {
+    "required_tools": ["modify_data"],
+    "required_outputs": ["names", "list"]
+  }
+}
+

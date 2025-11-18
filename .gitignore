@@ -74,12 +74,8 @@ docs/_build/
 site/
 documentation/
 
-# Test files and test data
-**/test*.py
-**/*test*.py
-**/tests/
-**/test_*.py
-**/__test__/
+# Test files and test data (but keep evaluation framework in tests/)
+# Ignore old test files outside tests/ directory
 **/test_data/
 **/test_outputs/
 **/test_prompts/
@@ -95,3 +91,7 @@ documentation/
 **/outputs/
 **/hardcoded_*.py
 **/*_hardcoded.py
+
+# Test results (but keep framework code)
+tests/results/*.csv
+tests/snapshots/*.snapshot.json

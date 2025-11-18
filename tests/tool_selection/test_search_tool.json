@@ -1,0 +1,10 @@
+{
+  "id": "search-todos",
+  "category": "tool_selection",
+  "task": "Find TODO comments in the repository",
+  "expected": {
+    "required_tools": ["search_in_files"],
+    "disallowed_tools": ["generate_text"]
+  }
+}
+

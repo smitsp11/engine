@@ -1,0 +1,16 @@
+{
+  "id": "summary-ai",
+  "category": "planning",
+  "task": "Write a summary of Canadian AI startups",
+  "expected": {
+    "min_steps": 5,
+    "max_steps": 15,
+    "required_tools": ["generate_text", "search_in_files", "modify_data", "save_output"],
+    "criteria": {
+      "relevance": ">=4",
+      "correctness": ">=4",
+      "completeness": ">=3"
+    }
+  }
+}
+

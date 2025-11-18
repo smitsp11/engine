@@ -1,0 +1,12 @@
+{
+  "id": "ambiguous-task",
+  "category": "stress",
+  "task": "Do everything about AI.",
+  "expected": {
+    "min_steps": 3,
+    "criteria": {
+      "correctness": ">=2"
+    }
+  }
+}
+

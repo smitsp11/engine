@@ -1,0 +1,9 @@
+{
+  "id": "invalid-tool-regression",
+  "category": "regression",
+  "task": "Use the magic_tool to solve this.",
+  "expected": {
+    "disallowed_tools": ["magic_tool"]
+  }
+}
+

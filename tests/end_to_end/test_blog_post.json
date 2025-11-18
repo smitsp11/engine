@@ -1,0 +1,14 @@
+{
+  "id": "blog-post",
+  "category": "end_to_end",
+  "task": "Write a 3-section blog post about the future of retail AI.",
+  "expected": {
+    "min_steps": 5,
+    "max_steps": 15,
+    "criteria": {
+      "relevance": ">=4",
+      "completeness": ">=4"
+    }
+  }
+}
+
