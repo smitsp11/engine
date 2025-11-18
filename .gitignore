@@ -53,6 +53,8 @@ htmlcov/
 .env
 .env.local
 .env.*.local
+# But allow .env.example to be committed
+!.env.example
 
 # Logs
 logs/
@@ -71,3 +73,25 @@ temp/
 docs/_build/
 site/
 documentation/
+
+# Test files and test data
+**/test*.py
+**/*test*.py
+**/tests/
+**/test_*.py
+**/__test__/
+**/test_data/
+**/test_outputs/
+**/test_prompts/
+**/test_examples/
+
+# Example files
+**/examples/
+**/example*.py
+**/*example*.py
+
+# Hardcoded prompts and outputs
+**/prompts/
+**/outputs/
+**/hardcoded_*.py
+**/*_hardcoded.py

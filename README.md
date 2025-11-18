@@ -1,5 +1,5 @@
   🧠 Task Manager Agent Engine  
-  A Reasoning Improvement Engine for LLMs  
+  A Reasoning Improvement Engine Powered by Real LLMs  
   Taking messy human tasks → simplifying → planning → rewriting → executing → fixing → finishing.  
   Because raw LLMs are powerful… but directionally challenged.
 
@@ -83,14 +83,27 @@
   🧪 Example Usage
   ------------------------------------------------------
 
+  **Python API:**
+  ```python
   from agent_engine import run_agent
   result = run_agent("Plan a birthday party for my friend")
-  print(result["final_status"])
+  print(result["status"])
+  ```
+
+  **REST API:**
+  ```bash
+  curl -X POST http://localhost:8000/run \
+    -H "Content-Type: application/json" \
+    -d '{
+      "task": "Plan a birthday party for my friend",
+      "model": "gemini-2.5-flash"
+    }'
+  ```
 
   Example Output (simplified):
   {
     "task": "Plan a birthday party for my friend",
-    "final_status": "SUCCEEDED",
+    "status": "succeeded",
     "plan": [...],
     "results": [...],
     "memory": {...}
@@ -146,19 +159,40 @@
   This system **thinks first**, then acts.
 
   ------------------------------------------------------
-  📊 Performance (Synthetic Benchmarks)
+  📊 Features
   ------------------------------------------------------
 
-  | Task            | Subtasks | Success Rate | Avg Prompt Size |
-  |-----------------|----------|--------------|------------------|
-  | Party Planning  | 5        | 100%         | 1,350 chars      |
-  | Research Task   | 5        | 100%         | 1,280 chars      |
+  - **Real LLM Integration**: Uses Google Gemini 2.5 Flash for planning, generation, and evaluation
+  - **Intelligent Planning**: LLM generates structured, multi-step plans with dependencies
+  - **Context-Aware Execution**: Each step uses optimized prompts with full context
+  - **Self-Checking**: LLM evaluates whether each step meets success criteria
+  - **Dynamic Replanning**: Automatically recovers from failures with LLM-generated recovery plans
 
   ------------------------------------------------------
   🛠 Tests
   ------------------------------------------------------
 
   pytest
+
+  ------------------------------------------------------
+  🔧 Setup & Configuration
+  ------------------------------------------------------
+
+  **Required:**
+  1. Install dependencies: `pip install -r requirements.txt`
+  2. Set up environment variables:
+     - Copy `.env.example` to `.env`: `cp .env.example .env`
+     - Edit `.env` and add your Google API key:
+       ```
+       GOOGLE_API_KEY=your-actual-api-key-here
+       ```
+     - Get your API key from: https://makersuite.google.com/app/apikey
+     - **Important**: Never commit your `.env` file to version control. It's already in `.gitignore`.
+  3. Run the API: `uvicorn api.app:app --reload`
+
+  **Model Options:**
+  - Default: `gemini-2.5-flash` (cost-effective, fast)
+  - High quality: `gemini-2.5-pro` (better reasoning, slower)
 
   ------------------------------------------------------
   📈 Roadmap (Next Steps)
@@ -168,7 +202,7 @@
   - Backtracking (undo + retry)
   - Multi-agent execution per intent
   - Long-term memory summarization
-  - Real LLM integration
+  - Support for additional LLM providers
 
   ------------------------------------------------------
   📝 License

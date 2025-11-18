@@ -25,7 +25,15 @@ from .executor import Executor
 from .schemas import TaskPlan, SubtaskResult, SubtaskStatus
 from .state import TaskState, TaskStatus
 from .task_simplifier import TaskSimplifier
+from .llm import LLMClient, get_llm_client
 from . import utils
+
+# Ensure .env is loaded when agent_engine is imported
+from pathlib import Path
+from dotenv import load_dotenv
+env_path = Path(__file__).parent.parent.parent / ".env"
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
 
 
 class AgentCore:
@@ -42,12 +50,33 @@ class AgentCore:
       3. **Summarise** – Produce a final report from memory + state.
     """
 
-    def __init__(self, planner: Optional[Planner] = None, executor: Optional[Executor] = None):
-        self.planner = planner or Planner()
+    def __init__(
+        self,
+        planner: Optional[Planner] = None,
+        executor: Optional[Executor] = None,
+        llm_client: Optional[LLMClient] = None,
+    ):
+        """
+        Initialize the agent core.
+        
+        Parameters
+        ----------
+        planner: Optional[Planner]
+            Planner instance. If not provided, creates one with default LLM.
+        executor: Optional[Executor]
+            Executor instance. If not provided, creates one with default LLM.
+        llm_client: Optional[LLMClient]
+            LLM client to use. If not provided, creates a default one.
+            This client will be shared by planner and executor if they are auto-created.
+        """
+        # Create shared LLM client if not provided
+        llm = llm_client or get_llm_client()
+        
+        self.planner = planner or Planner(llm_client=llm)
         self.memory = Memory()
         self.state = TaskState()
         # Executor depends on memory/state so we construct it after them.
-        self.executor = executor or Executor(memory=self.memory, state=self.state)
+        self.executor = executor or Executor(memory=self.memory, state=self.state, llm_client=llm)
         self.simplifier = TaskSimplifier()
 
     # ------------------------------------------------------------------

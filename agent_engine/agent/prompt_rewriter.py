@@ -35,8 +35,6 @@ class PromptRewriter:
     def __init__(self) -> None:
         # Tool-specific templates for best practices
         self._tool_templates = self._initialize_tool_templates()
-        # Few-shot examples library
-        self._examples_library = self._initialize_examples_library()
 
     def rewrite(
         self,
@@ -84,10 +82,7 @@ class PromptRewriter:
         # 5. Add tool-specific scaffolding
         tool_scaffolding = self._build_tool_scaffolding(tool, subtask)
 
-        # 6. Add few-shot examples (if available)
-        examples_block = self._build_examples_block(tool, subtask)
-
-        # 7. Add think-step-by-step instruction
+        # 6. Add think-step-by-step instruction
         cot_instruction = self._build_cot_instruction(tool)
 
         # Assemble the final optimized prompt
@@ -113,13 +108,6 @@ class PromptRewriter:
             sections.extend([
                 "## Success Criteria",
                 criteria_block,
-                "",
-            ])
-
-        if examples_block:
-            sections.extend([
-                "## Examples",
-                examples_block,
                 "",
             ])
 
@@ -237,24 +225,6 @@ class PromptRewriter:
         template = self._tool_templates.get(tool, "")
         return template
 
-    def _build_examples_block(self, tool: ToolName, subtask: Subtask) -> str:
-        """Add few-shot examples when available."""
-        examples = self._examples_library.get(tool, [])
-        if not examples:
-            return ""
-        
-        # For now, include up to 2 examples
-        selected_examples = examples[:2]
-        
-        parts = []
-        for i, example in enumerate(selected_examples, 1):
-            parts.append(f"Example {i}:")
-            parts.append(f"  Input: {example['input']}")
-            parts.append(f"  Output: {example['output']}")
-            parts.append("")
-        
-        return "\n".join(parts)
-
     def _build_cot_instruction(self, tool: ToolName) -> str:
         """Build a Chain-of-Thought instruction tailored to the tool."""
         base = "Think step-by-step:"
@@ -314,7 +284,7 @@ class PromptRewriter:
                 "- Be specific and concrete\n"
                 "- Use clear structure (bullets, numbered lists, paragraphs)\n"
                 "- Include all requested information\n"
-                "- Start with 'Generated:' prefix"
+                "- Provide clear, well-structured output"
             ),
             ToolName.SEARCH_IN_FILES: (
                 "Best practices for searching:\n"
@@ -337,39 +307,6 @@ class PromptRewriter:
                 "- Ensure the saved content is complete\n"
                 "- Confirm storage was successful"
             ),
-        }
-
-    def _initialize_examples_library(self) -> Dict[ToolName, List[Dict[str, str]]]:
-        """Initialize a library of few-shot examples for each tool."""
-        return {
-            ToolName.GENERATE_TEXT: [
-                {
-                    "input": "List 3 party theme ideas",
-                    "output": "Generated: 1) Tropical Luau - tiki torches, leis, pineapple decor\n2) Retro 80s - neon colors, arcade games, synth music\n3) Garden Tea Party - floral arrangements, fine china, cucumber sandwiches",
-                },
-                {
-                    "input": "Draft a research question about AI",
-                    "output": "Generated: How do transformer-based language models balance performance improvements with computational efficiency in real-world applications?",
-                },
-            ],
-            ToolName.SEARCH_IN_FILES: [
-                {
-                    "input": "Find references to budget constraints",
-                    "output": "Found 3 references: 1) project_plan.txt mentions $5000 limit, 2) constraints.md specifies budget approval needed, 3) notes.txt discusses cost considerations",
-                },
-            ],
-            ToolName.MODIFY_DATA: [
-                {
-                    "input": "Transform the list into a structured checklist",
-                    "output": "Modified data: Converted 5 items into checklist format with categories (Preparation, Execution, Cleanup). Summary: Organized items by timeline and priority.",
-                },
-            ],
-            ToolName.SAVE_OUTPUT: [
-                {
-                    "input": "Save the birthday party plan",
-                    "output": "Stored successfully with key 'birthday_party_plan_2025'. Content includes theme, timeline, guest list, and logistics.",
-                },
-            ],
         }
 
 

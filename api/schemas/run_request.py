@@ -50,9 +50,9 @@ class RunRequest(BaseModel):
         examples=["Plan a birthday party for my friend", "Research AI startups in Canada"]
     )
     model: str = Field(
-        default="mock",
-        description="Model to use for reasoning (currently only 'mock' is supported)",
-        examples=["mock"]
+        default="gemini-2.5-flash",
+        description="Gemini model to use for reasoning (e.g., 'gemini-2.5-flash', 'gemini-2.5-pro')",
+        examples=["gemini-2.5-flash", "gemini-2.5-pro"]
     )
     settings: Optional[TaskSettings] = Field(
         default=None,
@@ -63,7 +63,7 @@ class RunRequest(BaseModel):
         json_schema_extra = {
             "example": {
                 "task": "Write a summary of Canadian AI startups",
-                "model": "mock",
+                "model": "gemini-2.5-flash",
                 "settings": {
                     "max_steps": 10,
                     "log_level": "info"
@@ -82,9 +82,9 @@ class PlanRequest(BaseModel):
         description="Natural language description of the task to plan"
     )
     model: str = Field(
-        default="mock",
-        description="Model to use for planning",
-        examples=["mock"]
+        default="gemini-2.5-flash",
+        description="Gemini model to use for planning (e.g., 'gemini-2.5-flash', 'gemini-2.5-pro')",
+        examples=["gemini-2.5-flash", "gemini-2.5-pro"]
     )
     context: Optional[Dict[str, Any]] = Field(
         default=None,

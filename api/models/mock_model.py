@@ -1,8 +1,11 @@
 """
-Mock reasoning model for testing and development.
+Mock reasoning model for testing and development ONLY.
 
 This simulates LLM behavior with deterministic, predictable outputs,
 allowing you to validate the entire agent loop without external API calls.
+
+WARNING: This is for testing only. The production system uses real LLM
+integration via agent_engine.agent.llm.LLMClient.
 """
 
 from typing import Any, Dict, List, Optional

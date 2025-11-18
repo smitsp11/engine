@@ -53,7 +53,7 @@ class RunResponse(BaseModel):
                 "metadata": {
                     "started_at": "2025-01-01T12:00:00Z",
                     "finished_at": "2025-01-01T12:05:00Z",
-                    "model": "mock"
+                    "model": "gemini-2.5-flash"
                 }
             }
         }
@@ -97,7 +97,7 @@ class PlanResponse(BaseModel):
                     }
                 ],
                 "metadata": {
-                    "model": "mock",
+                    "model": "gemini-2.5-flash",
                     "timestamp": "2025-01-01T12:00:00Z"
                 }
             }

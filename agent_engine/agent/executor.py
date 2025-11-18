@@ -19,6 +19,7 @@ from .state import TaskState
 from .schemas import Subtask, SubtaskResult, SubtaskStatus, ToolName
 from .tools import TOOL_REGISTRY, ToolFunc
 from .prompt_rewriter import PromptRewriter
+from .llm import LLMClient, get_llm_client
 from . import utils
 
 
@@ -80,12 +81,14 @@ class Executor:
         state: TaskState,
         tool_registry: Optional[Dict[ToolName, ToolFunc]] = None,
         prompt_rewriter: Optional[PromptRewriter] = None,
+        llm_client: Optional[LLMClient] = None,
     ) -> None:
         self.memory = memory
         self.state = state
         self.tool_registry: Dict[ToolName, ToolFunc] = tool_registry or TOOL_REGISTRY
         self.router = ToolRouter(self.tool_registry)
         self.prompt_rewriter = prompt_rewriter or PromptRewriter()
+        self.llm = llm_client or get_llm_client()
 
     # ------------------------------------------------------------------
     # Public API
@@ -275,13 +278,47 @@ class Executor:
 
     def self_check(self, subtask: Subtask, tool_output: Dict[str, Any]) -> CheckResult:
         """
-        Fake LLM-based self-check that assesses whether a subtask succeeded.
-
-        Heuristics (deterministic):
-        - GENERATE_TEXT: success if "Generated:" present and text is non-empty.
-        - SEARCH_IN_FILES: success if results list is non-empty.
-        - MODIFY_DATA: success if `summary` present in output.
-        - SAVE_OUTPUT: success if `stored` flag is True.
+        LLM-based self-check that assesses whether a subtask succeeded.
+        
+        Uses the LLM to evaluate if the tool output meets the success criteria.
+        Falls back to simple heuristics if LLM evaluation fails.
+        """
+        try:
+            # Use LLM to check completion
+            evaluation = self.llm.check_completion(
+                task=subtask.description,
+                output=tool_output,
+                criteria=subtask.success_criteria or "Output should be valid and complete.",
+            )
+            
+            # Determine if retry is suggested (typically for search failures or low confidence)
+            retry = False
+            if not evaluation["success"]:
+                # Suggest retry for search operations that found nothing
+                if subtask.tool == ToolName.SEARCH_IN_FILES:
+                    retry = True
+                # Suggest retry if confidence is low
+                elif evaluation.get("confidence", 0.5) < 0.5:
+                    retry = True
+            
+            return CheckResult(
+                success=evaluation["success"],
+                retry=retry,
+                reasoning=evaluation.get("reasoning", "LLM evaluation completed"),
+            )
+        except Exception as e:
+            utils.logger().warning(
+                "LLM self-check failed, using heuristic fallback",
+                extra={"error": str(e), "subtask_id": subtask.id},
+            )
+            # Fallback to simple heuristics
+            return self._heuristic_check(subtask, tool_output)
+    
+    def _heuristic_check(self, subtask: Subtask, tool_output: Dict[str, Any]) -> CheckResult:
+        """
+        Fallback heuristic-based self-check.
+        
+        Used when LLM evaluation is unavailable or fails.
         """
         tool_name = subtask.tool
         reasoning_parts = []
@@ -290,7 +327,7 @@ class Executor:
 
         if tool_name == ToolName.GENERATE_TEXT:
             text = str(tool_output.get("text", ""))
-            success = bool(text) and "Generated:" in text
+            success = bool(text) and len(text) > 10  # Non-empty and substantial
             reasoning_parts.append(
                 "Output contains generated text." if success else "Missing or empty generated text."
             )
@@ -298,13 +335,12 @@ class Executor:
             results = tool_output.get("results") or []
             success = len(results) > 0
             reasoning_parts.append(
-                "Found mock search results." if success else "No search results were returned."
+                "Found search results." if success else "No search results were returned."
             )
-            # If no results, we might suggest a retry once.
-            retry = not success
+            retry = not success  # Suggest retry if no results
         elif tool_name == ToolName.MODIFY_DATA:
             summary = tool_output.get("summary")
-            success = isinstance(summary, str) and "Modified data" in summary
+            success = isinstance(summary, str) and len(summary) > 0
             reasoning_parts.append(
                 "Summary of modified data present."
                 if success
@@ -316,7 +352,7 @@ class Executor:
             reasoning_parts.append(
                 "Output stored with a key." if success else "Output was not confirmed as stored."
             )
-        else:  # pragma: no cover - future tools
+        else:
             reasoning_parts.append("Unknown tool type; assuming failure.")
             success = False
 

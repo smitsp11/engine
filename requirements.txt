@@ -1,5 +1,10 @@
-# Core Agent Engine (no external dependencies)
-# The agent engine is designed to be dependency-light
+# Core Agent Engine Dependencies
+
+# Environment variable management
+python-dotenv==1.0.0
+
+# LLM Integration
+google-generativeai==0.8.3
 
 # FastAPI and Server Dependencies
 fastapi==0.109.0

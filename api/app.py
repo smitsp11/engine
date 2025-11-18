@@ -10,17 +10,25 @@ from datetime import datetime
 from typing import Dict, Any
 import logging
 import uuid
+from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import structlog
+
+# Load environment variables from .env file
+# Look for .env in the project root (parent of api directory)
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 from agent_engine.agent.core import AgentCore
 from agent_engine.agent.planner import Planner
 from agent_engine.agent.executor import Executor
 from agent_engine.agent.memory import Memory
 from agent_engine.agent.state import TaskState
+from agent_engine.agent.llm import LLMClient, get_llm_client
 
 from .schemas.run_request import RunRequest, PlanRequest, ExecuteStepRequest
 from .schemas.run_response import (
@@ -31,7 +39,6 @@ from .schemas.run_response import (
     DebugStateResponse,
     ErrorResponse,
 )
-from .models.mock_model import MockReasoningModel
 
 # Configure structured logging
 structlog.configure(
@@ -164,7 +171,7 @@ async def run_task(request: RunRequest):
     
     **Parameters:**
     - `task`: Natural language description of the task
-    - `model`: Model to use (currently only "mock" is supported)
+    - `model`: Gemini model to use (e.g., "gemini-2.5-flash", "gemini-2.5-pro"). Defaults to "gemini-2.5-flash"
     - `settings`: Optional execution settings (max_steps, log_level, etc.)
     
     **Returns:**
@@ -181,14 +188,17 @@ async def run_task(request: RunRequest):
     )
     
     try:
-        # Create agent with appropriate model
-        if request.model == "mock":
-            planner = Planner()
-            agent = AgentCore(planner=planner)
-        else:
+        # Create agent with LLM
+        # Model parameter specifies which Gemini model to use (defaults to "gemini-2.5-flash")
+        model_name = request.model
+        
+        try:
+            llm_client = get_llm_client(model=model_name)
+            agent = AgentCore(llm_client=llm_client)
+        except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported model: {request.model}. Currently only 'mock' is supported.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to initialize LLM: {str(e)}. Make sure GOOGLE_API_KEY is set.",
             )
         
         # Store agent for potential debugging
@@ -252,7 +262,7 @@ async def plan_task(request: PlanRequest):
     
     **Parameters:**
     - `task`: Natural language description of the task
-    - `model`: Model to use for planning (currently only "mock")
+    - `model`: Gemini model to use for planning (e.g., "gemini-2.5-flash", "gemini-2.5-pro"). Defaults to "gemini-2.5-flash"
     
     **Returns:**
     - Task plan with subtasks, dependencies, and success criteria
@@ -262,8 +272,18 @@ async def plan_task(request: PlanRequest):
     logger.info("plan_task_start", plan_id=plan_id, task=request.task, model=request.model)
     
     try:
-        # Create planner
-        planner = Planner()
+        # Create planner with LLM
+        # Model parameter specifies which Gemini model to use (defaults to "gemini-2.5-flash")
+        model_name = request.model
+        
+        try:
+            llm_client = get_llm_client(model=model_name)
+            planner = Planner(llm_client=llm_client)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to initialize LLM: {str(e)}. Make sure GOOGLE_API_KEY is set.",
+            )
         
         # Generate plan
         plan = planner.create_plan(request.task)
