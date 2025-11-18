@@ -160,146 +160,18 @@
 
   pytest
 
-------------------------------------------------------
-🌐 API Service Layer (NEW!)
-------------------------------------------------------
+  ------------------------------------------------------
+  📈 Roadmap (Next Steps)
+  ------------------------------------------------------
 
-The agent engine now has a complete FastAPI service layer!
+  - Step-level self-reflection
+  - Backtracking (undo + retry)
+  - Multi-agent execution per intent
+  - Long-term memory summarization
+  - Real LLM integration
 
-**Quick Start:**
-```bash
-# Install dependencies
-pip install -r requirements.txt
+  ------------------------------------------------------
+  📝 License
+  ------------------------------------------------------
 
-# Start the server
-uvicorn api.app:app --reload
-
-# Open interactive docs
-open http://localhost:8000/docs
-```
-
-**Available Endpoints:**
-- `POST /run` - Execute a complete task
-- `POST /plan` - Generate a plan without execution
-- `POST /execute-step` - Run a single subtask
-- `GET /health` - Health check
-- `GET /debug/state/{task_id}` - View internal state
-
-**Test the API:**
-```bash
-# Run the test script
-./test_api.sh
-
-# Or manually
-curl -X POST http://localhost:8000/run \
-  -H "Content-Type: application/json" \
-  -d '{"task": "Plan a birthday party", "model": "mock"}'
-```
-
-**Documentation:**
-- 📖 **[QUICKSTART.md](QUICKSTART.md)** - Get started in 5 minutes
-- 📚 **[API.md](API.md)** - Complete API documentation with examples
-- 🧪 **[test_api.sh](test_api.sh)** - Automated test script
-
-**What You Get:**
-- ✅ RESTful API with FastAPI
-- ✅ Comprehensive request/response schemas (Pydantic)
-- ✅ Structured logging (structlog)
-- ✅ Error handling and validation
-- ✅ Mock reasoning model for testing
-- ✅ Integration tests (pytest)
-- ✅ Interactive Swagger UI docs
-- ✅ curl and Postman examples
-
-**API Architecture:**
-```
-api/
-├── app.py              # FastAPI application
-├── models/
-│   └── mock_model.py   # Mock LLM for testing
-└── schemas/
-    ├── run_request.py  # Request schemas
-    └── run_response.py # Response schemas
-```
-
-------------------------------------------------------
-📈 Roadmap (Next Steps)
-------------------------------------------------------
-
-**Phase 1: Core Engine** ✅ COMPLETE
-- [x] Task planning and decomposition
-- [x] ReAct execution loop
-- [x] Tool routing and fallbacks
-- [x] Memory and state tracking
-- [x] Dynamic replanning
-
-**Phase 2: API Layer** ✅ COMPLETE
-- [x] FastAPI service
-- [x] Request/response schemas
-- [x] Mock reasoning model
-- [x] Integration tests
-- [x] API documentation
-
-**Phase 3: Real LLM Integration** 🔄 IN PROGRESS
-- [ ] OpenAI integration
-- [ ] Anthropic Claude integration
-- [ ] Rate limiting and caching
-- [ ] Streaming responses
-
-**Phase 4: Persistence & Scale** 📋 PLANNED
-- [ ] SQLite/PostgreSQL storage
-- [ ] Task resumption
-- [ ] Job queue (Celery/RQ)
-- [ ] Distributed execution
-
-**Phase 5: Frontend & UX** 📋 PLANNED
-- [ ] React/Next.js dashboard
-- [ ] Real-time task monitoring (WebSockets)
-- [ ] Visual plan editor
-- [ ] Agent playground
-
-**Phase 6: Production Ready** 📋 PLANNED
-- [ ] Docker containerization
-- [ ] Deploy to Render/Fly.io
-- [ ] Authentication & authorization
-- [ ] Rate limiting & quotas
-- [ ] Monitoring & observability
-- [ ] CI/CD pipeline
-
-------------------------------------------------------
-🧪 Testing
-------------------------------------------------------
-
-**Run Unit Tests:**
-```bash
-pytest
-```
-
-**Run with Coverage:**
-```bash
-pytest --cov=agent_engine --cov=api --cov-report=html
-```
-
-**Test API Endpoints:**
-```bash
-# Start server first
-uvicorn api.app:app --reload
-
-# Run test suite
-./test_api.sh
-```
-
-**Specific Test Files:**
-```bash
-pytest tests/test_planner.py -v       # Planner tests
-pytest tests/test_executor.py -v      # Executor tests
-pytest tests/test_api.py -v           # API integration tests
-pytest tests/test_api_mock_model.py -v # Mock model tests
-```
-
-------------------------------------------------------
-📝 License
-------------------------------------------------------
-
-MIT
-
+  MIT
